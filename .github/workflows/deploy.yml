@@ -20,15 +20,26 @@ jobs:
       with:
         node-version: '18'
         
-    - name: Install dependencies
+    - name: Create package.json
       run: |
-        npm init -y
-        npm install --save-dev replace-in-file
+        cat > package.json << 'EOF'
+        {
+          "name": "xiaozhi-web",
+          "version": "1.0.0",
+          "type": "module",
+          "devDependencies": {
+            "replace-in-file": "^7.0.0"
+          }
+        }
+        EOF
+        
+    - name: Install dependencies
+      run: npm install
         
     - name: Create config script
       run: |
         cat > inject-config.js << 'EOF'
-        const replace = require('replace-in-file');
+        import { replaceInFile } from 'replace-in-file';
         
         const options = {
           files: 'index.html',
@@ -36,13 +47,19 @@ jobs:
           to: `window.XIAOZHI_CONFIG = { token: '${process.env.XIAOZHI_TOKEN || ''}' };`
         };
         
-        replace(options)
-          .then(results => {
-            console.log('配置注入成功:', results);
-          })
-          .catch(error => {
-            console.error('配置注入失败:', error);
-          });
+        try {
+          const results = await replaceInFile(options);
+          console.log('配置注入成功:', results.filter(result => result.hasChanged));
+          
+          if (process.env.XIAOZHI_TOKEN) {
+            console.log('✅ Token已成功注入到配置中');
+          } else {
+            console.log('⚠️ 警告：XIAOZHI_TOKEN環境變數為空');
+          }
+        } catch (error) {
+          console.error('配置注入失敗:', error);
+          process.exit(1);
+        }
         EOF
         
     - name: Inject environment variables
@@ -50,6 +67,11 @@ jobs:
         XIAOZHI_TOKEN: ${{ secrets.XIAOZHI_TOKEN }}
       run: node inject-config.js
       
+    - name: Verify configuration
+      run: |
+        echo "檢查配置注入結果："
+        grep -n "XIAOZHI_CONFIG" index.html || echo "未找到配置"
+        
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       if: github.ref == 'refs/heads/main'
