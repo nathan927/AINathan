@@ -1,0 +1,8 @@
+{
+  "name": "xiaozhi-web",
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "replace-in-file": "^7.0.0"
+  }
+}
