@@ -1,0 +1,58 @@
+# .github/workflows/deploy.yml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm init -y
+        npm install --save-dev replace-in-file
+        
+    - name: Create config script
+      run: |
+        cat > inject-config.js << 'EOF'
+        const replace = require('replace-in-file');
+        
+        const options = {
+          files: 'index.html',
+          from: /\/\/ PLACEHOLDER_FOR_CONFIG/g,
+          to: `window.XIAOZHI_CONFIG = { token: '${process.env.XIAOZHI_TOKEN || ''}' };`
+        };
+        
+        replace(options)
+          .then(results => {
+            console.log('配置注入成功:', results);
+          })
+          .catch(error => {
+            console.error('配置注入失败:', error);
+          });
+        EOF
+        
+    - name: Inject environment variables
+      env:
+        XIAOZHI_TOKEN: ${{ secrets.XIAOZHI_TOKEN }}
+      run: node inject-config.js
+      
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
