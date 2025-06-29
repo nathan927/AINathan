@@ -39,7 +39,8 @@ jobs:
     - name: Create config script
       run: |
         cat > inject-config.js << 'EOF'
-        import { replaceInFile } from 'replace-in-file';
+        import pkg from 'replace-in-file';
+        const { replaceInFile } = pkg;
         
         const options = {
           files: 'index.html',
