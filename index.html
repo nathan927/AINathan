@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小智AI聊天夥伴 - Web版本</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .status {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-area {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .user-message {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 6px;
+        }
+
+        .ai-message {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border-bottom-left-radius: 6px;
+        }
+
+        .controls {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            outline: none;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .voice-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .record-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .record-btn.recording {
+            background: linear-gradient(45deg, #ee5a24, #ff6b6b);
+            animation: pulse 1s infinite;
+        }
+
+        .speak-btn {
+            background: linear-gradient(45deg, #00d2d3, #54a0ff);
+            color: white;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .settings {
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings select {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .token-config {
+            display: flex;
+            gap: 4%;
+            margin-bottom: 10px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            animation: blink 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #00d2d3;
+            animation: none;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-style: italic;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 小智AI</h1>
+            <div class="status" id="status">準備就緒</div>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="welcome-message">
+                👋 您好！我是小智，您的AI聊天夥伴<br>
+                可以和我語音對話或文字聊天喔！
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="輸入訊息..." />
+                <button class="btn" onclick="sendMessage()">傳送</button>
+            </div>
+
+            <div class="voice-controls">
+                <button class="voice-btn record-btn" id="recordBtn" onclick="toggleRecording()">🎤</button>
+                <button class="voice-btn speak-btn" onclick="speakLastMessage()">🔊</button>
+            </div>
+        </div>
+
+        <div class="settings">
+            <select id="languageSelect" onchange="changeLanguage()">
+                <option value="zh-TW">繁體中文</option>
+                <option value="zh-CN">简体中文</option>
+                <option value="en-US">English</option>
+                <option value="ja-JP">日本語</option>
+                <option value="ko-KR">한국어</option>
+            </select>
+            
+            <div class="token-config">
+                <button class="btn" onclick="showTokenConfig()" style="width: 48%; font-size: 12px;">配置Token</button>
+                <button class="btn" onclick="clearToken()" style="width: 48%; font-size: 12px;">清除Token</button>
+            </div>
+            
+            <div class="connection-status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="connectionText">正在連線...</span>
+                <button class="btn" style="margin-left: auto; padding: 4px 12px; font-size: 12px;" onclick="reconnect()">重新連線</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // PLACEHOLDER_FOR_CONFIG
+        
+        let isRecording = false;
+        let recognition = null;
+        let synthesis = window.speechSynthesis;
+        let currentLanguage = 'zh-TW';
+        let lastAiMessage = '';
+        let websocket = null;
+        let isConnected = false;
+        let messageId = 1;
+
+        // 获取MCP接入点地址
+        function getMCPEndpoint() {
+            // 方法1: 从环境变量获取 (适用于构建时注入)
+            if (typeof process !== 'undefined' && process.env && process.env.XIAOZHI_TOKEN) {
+                return `wss://api.xiaozhi.me/mcp/?token=${process.env.XIAOZHI_TOKEN}`;
+            }
+            
+            // 方法2: 从全局配置获取 (适用于GitHub Actions构建)
+            if (typeof window !== 'undefined' && window.XIAOZHI_CONFIG && window.XIAOZHI_CONFIG.token) {
+                return `wss://api.xiaozhi.me/mcp/?token=${window.XIAOZHI_CONFIG.token}`;
+            }
+            
+            // 方法3: 从本地存储获取 (用户配置)
+            if (typeof localStorage !== 'undefined') {
+                const userToken = localStorage.getItem('xiaozhi_token');
+                if (userToken) {
+                    return `wss://api.xiaozhi.me/mcp/?token=${userToken}`;
+                }
+            }
+            
+            // 方法4: 提示用户配置
+            return null;
+        }
+
+        // 显示Token配置界面
+        function showTokenConfig() {
+            const currentToken = localStorage.getItem('xiaozhi_token');
+            const message = currentToken ? 
+                '目前已配置Token。\n\n請輸入新的小智AI Token（留空取消）:' : 
+                '請輸入您的小智AI Token:\n\n您可以在 https://xiaozhi.me 註冊並獲取免費Token';
+                
+            const tokenInput = prompt(message);
+            if (tokenInput && tokenInput.trim()) {
+                localStorage.setItem('xiaozhi_token', tokenInput.trim());
+                addMessage('✅ Token已更新，正在重新連線...', 'ai');
+                location.reload(); // 重新加载页面
+            }
+        }
+
+        // 清除Token
+        function clearToken() {
+            if (confirm('確定要清除Token嗎？清除後需要重新配置才能使用。')) {
+                localStorage.removeItem('xiaozhi_token');
+                if (websocket) {
+                    websocket.close();
+                }
+                isConnected = false;
+                updateStatus('❌ Token已清除');
+                addMessage('Token已清除。請重新配置Token後使用。', 'ai');
+            }
+        }
+
+        // 初始化WebSocket连接
+        function initWebSocket() {
+            // 检查是否有有效的MCP端点
+            const MCP_ENDPOINT = getMCPEndpoint();
+            if (!MCP_ENDPOINT) {
+                updateStatus('❌ 需要配置Token');
+                addMessage('👋 歡迎使用小智AI！\n\n請點擊下方「配置Token」按鈕來設定您的API Token。\n\n您可以在 https://xiaozhi.me 註冊並獲取免費的Token。', 'ai');
+                return;
+            }
+
+            try {
+                updateStatus('正在連線到小智伺服器...');
+                websocket = new WebSocket(MCP_ENDPOINT);
+
+                websocket.onopen = function(event) {
+                    isConnected = true;
+                    updateStatus('✅ 已連線到小智AI');
+                    console.log('WebSocket連線已建立');
+                    
+                    // 添加连接成功消息
+                    addMessage('🎉 連線成功！我是小智，很高興為您服務！', 'ai');
+                    
+                    // 发送初始化消息
+                    sendMCPMessage({
+                        jsonrpc: "2.0",
+                        id: messageId++,
+                        method: "initialize",
+                        params: {
+                            protocolVersion: "2024-11-05",
+                            capabilities: {
+                                roots: {
+                                    listChanged: true
+                                },
+                                sampling: {}
+                            },
+                            clientInfo: {
+                                name: "xiaozhi-web-client",
+                                version: "1.0.0"
+                            }
+                        }
+                    });
+                };
+
+                websocket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('收到訊息:', data);
+                        handleMCPMessage(data);
+                    } catch (error) {
+                        console.error('解析訊息失敗:', error);
+                    }
+                };
+
+                websocket.onclose = function(event) {
+                    isConnected = false;
+                    updateStatus('❌ 連線已中斷');
+                    console.log('WebSocket連線已關閉:', event);
+                    
+                    // 检查是否是token问题
+                    if (event.code === 1008 || event.code === 1002) {
+                        addMessage('❌ Token可能已過期或無效，請重新配置。', 'ai');
+                        localStorage.removeItem('xiaozhi_token');
+                    } else {
+                        // 尝试重连
+                        setTimeout(() => {
+                            if (!isConnected) {
+                                const currentEndpoint = getMCPEndpoint();
+                                if (currentEndpoint) {
+                                    initWebSocket();
+                                }
+                            }
+                        }, 3000);
+                    }
+                };
+
+                websocket.onerror = function(error) {
+                    isConnected = false;
+                    updateStatus('❌ 連線錯誤');
+                    console.error('WebSocket錯誤:', error);
+                };
+
+            } catch (error) {
+                console.error('WebSocket初始化失敗:', error);
+                updateStatus('❌ 連線失敗');
+            }
+        }
+
+        // 发送MCP消息
+        function sendMCPMessage(message) {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify(message));
+                console.log('傳送訊息:', message);
+            } else {
+                console.error('WebSocket未連線');
+                updateStatus('❌ 連線已中斷，正在重新連線...');
+                initWebSocket();
+            }
+        }
+
+        // 处理MCP消息
+        function handleMCPMessage(data) {
+            if (data.method === 'notifications/message') {
+                // 处理AI回复消息
+                if (data.params && data.params.content) {
+                    const content = data.params.content;
+                    if (content.type === 'text') {
+                        lastAiMessage = content.text;
+                        addMessage(content.text, 'ai');
+                        updateStatus('✅ 已连接到小智AI');
+                        
+                        // 自动语音播放
+                        if (synthesis) {
+                            speakText(content.text);
+                        }
+                    }
+                }
+            } else if (data.result) {
+                // 处理其他响应
+                console.log('收到响应:', data.result);
+            } else if (data.error) {
+                console.error('MCP错误:', data.error);
+                updateStatus('❌ 服务器错误: ' + data.error.message);
+            }
+        }
+
+        // 初始化语音识别
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = currentLanguage;
+
+                recognition.onstart = function() {
+                    updateStatus('正在聆聽...');
+                };
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    addMessage(transcript, 'user');
+                    sendToAI(transcript);
+                };
+
+                recognition.onerror = function(event) {
+                    updateStatus('語音識別錯誤: ' + event.error);
+                    isRecording = false;
+                    updateRecordButton();
+                };
+
+                recognition.onend = function() {
+                    isRecording = false;
+                    updateRecordButton();
+                    updateStatus('準備就緒');
+                };
+            } else {
+                updateStatus('瀏覽器不支援語音識別');
+            }
+        }
+
+        // 添加消息到聊天区域
+        function addMessage(message, sender) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = message;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (message) {
+                addMessage(message, 'user');
+                input.value = '';
+                sendToAI(message);
+            }
+        }
+
+        // 发送到AI (真实MCP连接)
+        function sendToAI(message) {
+            if (!isConnected) {
+                updateStatus('❌ 未連線到伺服器');
+                addMessage('抱歉，目前無法連線到AI伺服器，請稍後再試。', 'ai');
+                return;
+            }
+
+            updateStatus('🤔 小智正在思考...');
+            
+            // 发送对话消息到MCP服务器
+            const mcpMessage = {
+                jsonrpc: "2.0",
+                id: messageId++,
+                method: "sampling/createMessage",
+                params: {
+                    messages: [
+                        {
+                            role: "user",
+                            content: {
+                                type: "text",
+                                text: message
+                            }
+                        }
+                    ],
+                    modelPreferences: {
+                        hints: [
+                            {
+                                name: "claude-3-5-sonnet-20241022"
+                            }
+                        ],
+                        costPriority: 0.5,
+                        speedPriority: 0.8,
+                        intelligencePriority: 0.9
+                    },
+                    systemPrompt: `你是小智，一個友善、聰明、有趣的AI助手。請用${getLanguageName(currentLanguage)}回覆用戶。回覆要簡潔有趣，充滿活力。`,
+                    includeContext: "thisConversation",
+                    temperature: 0.7,
+                    maxTokens: 1000
+                }
+            };
+
+            sendMCPMessage(mcpMessage);
+        }
+
+        // 获取语言名称
+        function getLanguageName(langCode) {
+            const langMap = {
+                'zh-TW': '繁體中文',
+                'zh-CN': '簡體中文',
+                'en-US': 'English',
+                'ja-JP': '日本語',
+                'ko-KR': '한국어'
+            };
+            return langMap[langCode] || '繁體中文';
+        }
+
+        // 文本转语音
+        function speakText(text) {
+            if (synthesis) {
+                synthesis.cancel(); // 停止当前播放
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = currentLanguage;
+                utterance.rate = 0.9;
+                utterance.pitch = 1.1;
+                synthesis.speak(utterance);
+            }
+        }
+
+        // 播放最后一条AI消息
+        function speakLastMessage() {
+            if (lastAiMessage) {
+                speakText(lastAiMessage);
+            }
+        }
+
+        // 切换录音状态
+        function toggleRecording() {
+            if (!recognition) {
+                updateStatus('語音識別不可用');
+                return;
+            }
+
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                isRecording = true;
+            }
+            updateRecordButton();
+        }
+
+        // 更新录音按钮状态
+        function updateRecordButton() {
+            const btn = document.getElementById('recordBtn');
+            if (isRecording) {
+                btn.classList.add('recording');
+                btn.textContent = '⏹️';
+            } else {
+                btn.classList.remove('recording');
+                btn.textContent = '🎤';
+            }
+        }
+
+        // 更改语言
+        function changeLanguage() {
+            currentLanguage = document.getElementById('languageSelect').value;
+            if (recognition) {
+                recognition.lang = currentLanguage;
+            }
+            
+            const welcomeMessages = {
+                'zh-TW': '👋 您好！我是小智，您的AI聊天夥伴<br>可以和我語音對話或文字聊天喔！',
+                'zh-CN': '👋 你好！我是小智，你的AI聊天伙伴<br>可以和我语音对话或文字聊天哦！',
+                'en-US': '👋 Hello! I\'m Xiaozhi, your AI chat companion<br>You can talk to me by voice or text!',
+                'ja-JP': '👋 こんにちは！私は小智、あなたのAIチャットパートナーです<br>音声やテキストで話しかけてください！',
+                'ko-KR': '👋 안녕하세요! 저는 샤오지, 당신의 AI 채팅 동반자입니다<br>음성이나 텍스트로 대화할 수 있어요!'
+            };
+            
+            updateStatus(currentLanguage === 'zh-TW' ? '語言已切換' : 'Language changed');
+        }
+
+        // 重新连接
+        function reconnect() {
+            if (websocket) {
+                websocket.close();
+            }
+            isConnected = false;
+            
+            // 重新获取endpoint以检查token更新
+            const newEndpoint = getMCPEndpoint();
+            if (!newEndpoint) {
+                updateStatus('❌ 需要配置Token');
+                addMessage('請先配置Token才能連線。', 'ai');
+                return;
+            }
+            
+            updateStatus('正在重新連線...');
+            setTimeout(() => {
+                initWebSocket();
+            }, 1000);
+        }
+
+        // 更新状态
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            
+            // 更新连接状态指示器
+            const indicator = document.getElementById('statusIndicator');
+            const connectionText = document.getElementById('connectionText');
+            
+            if (isConnected) {
+                indicator.classList.add('connected');
+                connectionText.textContent = '已連線到小智AI';
+            } else if (!getMCPEndpoint()) {
+                indicator.classList.remove('connected');
+                connectionText.textContent = '需要配置Token';
+            } else {
+                indicator.classList.remove('connected');
+                connectionText.textContent = '連線中...';
+            }
+        }
+
+        // 输入框回车事件
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 初始化
+        initSpeechRecognition();
+        initWebSocket();
+        updateStatus('正在初始化...');
+    </script>
+</body>
+</html>
